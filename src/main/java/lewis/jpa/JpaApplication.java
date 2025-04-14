@@ -7,13 +7,13 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.dao.OptimisticLockingFailureException;
 
 import lewis.jpa.dto.UserPostDto;
 import lewis.jpa.entity.User;
 import lewis.jpa.service.DataService;
+import lewis.jpa.util.ColoredOutput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -70,7 +70,7 @@ public class JpaApplication {
 	@org.springframework.context.annotation.Profile({"all", "setup"})
 	public CommandLineRunner initialDataSetup() {
 		return args -> {
-			log.info("SETUP: Initializing test data...");
+			log.info(ColoredOutput.BOLD + ColoredOutput.YELLOW + "SETUP: Initializing test data..." + ColoredOutput.RESET);
 			
 			// Create test data
 			List<UserPostDto> testData = Arrays.asList(
@@ -105,7 +105,7 @@ public class JpaApplication {
 			// Process test data using the transactional service method
 			dataService.processUserPosts(testData);
 			
-			log.info("SETUP: Initial test data created successfully");
+			log.info(ColoredOutput.BOLD + ColoredOutput.GREEN + "SETUP: Initial test data created successfully" + ColoredOutput.RESET);
 		};
 	}
 	
@@ -117,7 +117,7 @@ public class JpaApplication {
 	@org.springframework.context.annotation.Profile({"all", "demo1"})
 	public CommandLineRunner optimisticLockingDemo() {
 		return args -> {
-			log.info("\n\n=== DEMO 1: OPTIMISTIC LOCKING ===\n");
+			log.info(ColoredOutput.demoHeader(1, "OPTIMISTIC LOCKING"));
 			
 			try {
 				// Update user with ID 1
@@ -145,7 +145,7 @@ public class JpaApplication {
 				log.error("Error during demonstration: {}", e.getMessage(), e);
 			}
 			
-			log.info("\n=== DEMO 1: OPTIMISTIC LOCKING COMPLETE ===\n");
+			log.info(ColoredOutput.demoFooter(1, "OPTIMISTIC LOCKING"));
 		};
 	}
 	
@@ -157,7 +157,7 @@ public class JpaApplication {
 	@org.springframework.context.annotation.Profile({"all", "demo2"})
 	public CommandLineRunner transactionRollbackDemo() {
 		return args -> {
-			log.info("\n\n=== DEMO 2: TRANSACTION ROLLBACK ===\n");
+			log.info(ColoredOutput.demoHeader(2, "TRANSACTION ROLLBACK"));
 			
 			try {
 				// First successful transaction
@@ -173,7 +173,7 @@ public class JpaApplication {
 				log.info("Transaction was rolled back as expected: {}", e.getMessage());
 			}
 			
-			log.info("\n=== DEMO 2: TRANSACTION ROLLBACK COMPLETE ===\n");
+			log.info(ColoredOutput.demoFooter(2, "TRANSACTION ROLLBACK"));
 		};
 	}
 	
@@ -185,7 +185,7 @@ public class JpaApplication {
 	@org.springframework.context.annotation.Profile({"all", "demo3"})
 	public CommandLineRunner requiresNewPropagationDemo() {
 		return args -> {
-			log.info("\n\n=== DEMO 3: REQUIRES_NEW PROPAGATION ===\n");
+			log.info(ColoredOutput.demoHeader(3, "REQUIRES_NEW PROPAGATION"));
 			
 			UserPostDto user1 = UserPostDto.builder()
 					.username("propagation_outer")
@@ -218,7 +218,7 @@ public class JpaApplication {
 				log.info("Outer transaction rollback status: User exists = {}", outerUserExists);
 			}
 			
-			log.info("\n=== DEMO 3: REQUIRES_NEW PROPAGATION COMPLETE ===\n");
+			log.info(ColoredOutput.demoFooter(3, "REQUIRES_NEW PROPAGATION"));
 		};
 	}
 	
@@ -230,7 +230,7 @@ public class JpaApplication {
 	@org.springframework.context.annotation.Profile({"all", "demo4"})
 	public CommandLineRunner readOnlyTransactionDemo() {
 		return args -> {
-			log.info("\n\n=== DEMO 4: READ-ONLY TRANSACTIONS ===\n");
+			log.info(ColoredOutput.demoHeader(4, "READ-ONLY TRANSACTIONS"));
 			
 			// Get users with read-only optimization
 			List<User> users = dataService.getAllUsersReadOnly();
@@ -240,7 +240,7 @@ public class JpaApplication {
 			// and save them, there may be unexpected behavior depending on
 			// the persistence provider
 			
-			log.info("\n=== DEMO 4: READ-ONLY TRANSACTIONS COMPLETE ===\n");
+			log.info(ColoredOutput.demoFooter(4, "READ-ONLY TRANSACTIONS"));
 		};
 	}
 	
@@ -252,7 +252,7 @@ public class JpaApplication {
 	@org.springframework.context.annotation.Profile({"all", "demo5"})
 	public CommandLineRunner isolationLevelsDemo() {
 		return args -> {
-			log.info("\n\n=== DEMO 5: TRANSACTION ISOLATION LEVELS ===\n");
+			log.info(ColoredOutput.demoHeader(5, "TRANSACTION ISOLATION LEVELS"));
 			
 			try {
 				// Update with serializable isolation - strongest isolation level
@@ -262,7 +262,7 @@ public class JpaApplication {
 				log.error("Error during isolation level demonstration: {}", e.getMessage(), e);
 			}
 			
-			log.info("\n=== DEMO 5: TRANSACTION ISOLATION LEVELS COMPLETE ===\n");
+			log.info(ColoredOutput.demoFooter(5, "TRANSACTION ISOLATION LEVELS"));
 		};
 	}
 	
@@ -274,7 +274,7 @@ public class JpaApplication {
 	@org.springframework.context.annotation.Profile({"all", "demo6"})
 	public CommandLineRunner customRollbackRulesDemo() {
 		return args -> {
-			log.info("\n\n=== DEMO 6: CUSTOM ROLLBACK RULES ===\n");
+			log.info(ColoredOutput.demoHeader(6, "CUSTOM ROLLBACK RULES"));
 			
 			try {
 				log.info("Testing transaction with IllegalArgumentException (should rollback)");
@@ -304,7 +304,7 @@ public class JpaApplication {
 				log.error("Unexpected exception: {}", e.getMessage(), e);
 			}
 			
-			log.info("\n=== DEMO 6: CUSTOM ROLLBACK RULES COMPLETE ===\n");
+			log.info(ColoredOutput.demoFooter(6, "CUSTOM ROLLBACK RULES"));
 		};
 	}
 	
@@ -316,7 +316,7 @@ public class JpaApplication {
 	@org.springframework.context.annotation.Profile({"all", "demo7"})
 	public CommandLineRunner transactionTimeoutDemo() {
 		return args -> {
-			log.info("\n\n=== DEMO 7: TRANSACTION TIMEOUT ===\n");
+			log.info(ColoredOutput.demoHeader(7, "TRANSACTION TIMEOUT"));
 			
 			try {
 				log.info("Testing transaction with timeout (4-second operation, 5-second timeout)");
@@ -326,7 +326,7 @@ public class JpaApplication {
 				log.error("Error during timeout demonstration: {}", e.getMessage(), e);
 			}
 			
-			log.info("\n=== DEMO 7: TRANSACTION TIMEOUT COMPLETE ===\n");
+			log.info(ColoredOutput.demoFooter(7, "TRANSACTION TIMEOUT"));
 		};
 	}
 	
@@ -338,7 +338,7 @@ public class JpaApplication {
 	@org.springframework.context.annotation.Profile({"all", "demo8"})
 	public CommandLineRunner nestedTransactionsDemo() {
 		return args -> {
-			log.info("\n\n=== DEMO 8: NESTED TRANSACTIONS ===\n");
+			log.info(ColoredOutput.demoHeader(8, "NESTED TRANSACTIONS"));
 			
 			UserPostDto user1 = UserPostDto.builder()
 					.username("nested_outer")
@@ -363,7 +363,7 @@ public class JpaApplication {
 				log.error("Unexpected error: {}", e.getMessage(), e);
 			}
 			
-			log.info("\n=== DEMO 8: NESTED TRANSACTIONS COMPLETE ===\n");
+			log.info(ColoredOutput.demoFooter(8, "NESTED TRANSACTIONS"));
 		};
 	}
 	
@@ -375,7 +375,7 @@ public class JpaApplication {
 	@org.springframework.context.annotation.Profile({"all", "demo9"})
 	public CommandLineRunner bulkOperationsDemo() {
 		return args -> {
-			log.info("\n\n=== DEMO 9: BULK OPERATIONS ===\n");
+			log.info(ColoredOutput.demoHeader(9, "BULK OPERATIONS"));
 			
 			try {
 				// First set all users to inactive
@@ -389,7 +389,7 @@ public class JpaApplication {
 				log.error("Error during bulk operations: {}", e.getMessage(), e);
 			}
 			
-			log.info("\n=== DEMO 9: BULK OPERATIONS COMPLETE ===\n");
+			log.info(ColoredOutput.demoFooter(9, "BULK OPERATIONS"));
 		};
 	}
 	
@@ -401,7 +401,7 @@ public class JpaApplication {
 	@org.springframework.context.annotation.Profile({"all", "demo10"})
 	public CommandLineRunner programmaticTransactionsDemo() {
 		return args -> {
-			log.info("\n\n=== DEMO 10: PROGRAMMATIC TRANSACTIONS ===\n");
+			log.info(ColoredOutput.demoHeader(10, "PROGRAMMATIC TRANSACTIONS"));
 			
 			UserPostDto dto = UserPostDto.builder()
 					.username("programmatic_tx")
@@ -417,7 +417,7 @@ public class JpaApplication {
 				log.error("Error in programmatic transaction: {}", e.getMessage(), e);
 			}
 			
-			log.info("\n=== DEMO 10: PROGRAMMATIC TRANSACTIONS COMPLETE ===\n");
+			log.info(ColoredOutput.demoFooter(10, "PROGRAMMATIC TRANSACTIONS"));
 		};
 	}
 	
@@ -429,7 +429,7 @@ public class JpaApplication {
 	@org.springframework.context.annotation.Profile({"all", "demo11"})
 	public CommandLineRunner selfInvocationProblemDemo() {
 		return args -> {
-			log.info("\n\n=== DEMO 11: SELF-INVOCATION PROBLEM ===\n");
+			log.info(ColoredOutput.demoHeader(11, "SELF-INVOCATION PROBLEM"));
 			
 			try {
 				dataService.demonstrateSelfInvocationIssue(null);
@@ -447,7 +447,7 @@ public class JpaApplication {
 				log.error("Error in self-invocation demonstration: {}", e.getMessage(), e);
 			}
 			
-			log.info("\n=== DEMO 11: SELF-INVOCATION PROBLEM COMPLETE ===\n");
+			log.info(ColoredOutput.demoFooter(11, "SELF-INVOCATION PROBLEM"));
 		};
 	}
 	
@@ -459,7 +459,7 @@ public class JpaApplication {
 	@org.springframework.context.annotation.Profile({"all", "demo12"})
 	public CommandLineRunner transactionEventsDemo() {
 		return args -> {
-			log.info("\n\n=== DEMO 12: TRANSACTION EVENTS ===\n");
+			log.info(ColoredOutput.demoHeader(12, "TRANSACTION EVENTS"));
 			
 			UserPostDto dto = UserPostDto.builder()
 					.username("event_user")
@@ -475,7 +475,7 @@ public class JpaApplication {
 				log.error("Error in transaction events demonstration: {}", e.getMessage(), e);
 			}
 			
-			log.info("\n=== DEMO 12: TRANSACTION EVENTS COMPLETE ===\n");
+			log.info(ColoredOutput.demoFooter(12, "TRANSACTION EVENTS"));
 		};
 	}
 }

@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import lewis.jpa.dto.UserPostDto;
@@ -24,6 +26,7 @@ public class DataService {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final PlatformTransactionManager transactionManager;
     
     /**
      * Processes a list of UserPostDto objects, converting each into User and Post entities
@@ -345,16 +348,8 @@ public class DataService {
     public void programmaticTransactionExample(UserPostDto dto) {
         log.info("Demonstrating programmatic transaction management");
         
-        org.springframework.transaction.PlatformTransactionManager txManager = 
-                org.springframework.transaction.support.TransactionSynchronizationManager.getResourceMap()
-                .values().stream()
-                .filter(r -> r instanceof org.springframework.transaction.PlatformTransactionManager)
-                .map(r -> (org.springframework.transaction.PlatformTransactionManager) r)
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("TransactionManager not found"));
-
-        org.springframework.transaction.support.TransactionTemplate txTemplate = 
-                new org.springframework.transaction.support.TransactionTemplate(txManager);
+        // Create transaction template using the injected transaction manager
+        TransactionTemplate txTemplate = new TransactionTemplate(transactionManager);
         
         // Execute code within a transaction
         txTemplate.execute(status -> {

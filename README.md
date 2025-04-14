@@ -107,22 +107,22 @@ Create an `application.properties` file with the following settings to enable sp
 
 ```properties
 # Enable/disable specific demo runners
-spring.profiles.active=demo1,demo3,demo5
+spring.profiles.active=setup,demo1,demo3,demo5
 
 # Alternatively, disable specific demo runners
 spring.profiles.default=all
 spring.profiles.inactive=demo2,demo4
 ```
 
+All demo runners are annotated with both the "all" profile and their specific demo profile (e.g., "demo1", "demo2", etc.). The "setup" profile is used for the initial data setup.
+
 ### Option 2: Using command line arguments
 
-Run with specific command line arguments to enable only certain demos:
+Run with specific profiles via command line:
 
 ```bash
-mvn spring-boot:run -Dspring-boot.run.arguments="--demo=1,3,5"
+mvn spring-boot:run -Dspring.profiles.active=setup,demo1,demo3,demo5
 ```
-
-This requires minor code changes to parse the arguments in the application class.
 
 ### Option 3: Modify source code
 
@@ -150,3 +150,9 @@ If you encounter NullPointerExceptions related to version fields:
 ## Additional Resources
 - [Spring Data JPA Documentation](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/)
 - [Hibernate ORM Documentation](https://hibernate.org/orm/documentation/)
+
+### Colorful Console Output
+
+The application uses ANSI color codes to display colorful demo headers and footers in the console. This makes it easier to distinguish between different demos and their outputs.
+
+If your terminal doesn't support ANSI colors, you may see escape sequences like `\u001B[32m` in the output. In that case, you can modify the `ColoredOutput` class to disable colors.
