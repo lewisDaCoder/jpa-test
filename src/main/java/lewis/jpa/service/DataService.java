@@ -3,12 +3,14 @@ package lewis.jpa.service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lewis.jpa.dto.UserPostDto;
 import lewis.jpa.entity.Post;
 import lewis.jpa.entity.User;
+import lewis.jpa.event.UserCreatedEvent;
 import lewis.jpa.repository.PostRepository;
 import lewis.jpa.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ public class DataService {
 
     private final UserRepository userRepository;
     private final PostRepository postRepository;
+    private final ApplicationEventPublisher eventPublisher;
     
     /**
      * Processes a list of UserPostDto objects, converting each into User and Post entities
@@ -179,5 +182,246 @@ public class DataService {
         
         log.info("Transaction completed successfully");
         return true;
+    }
+
+    // --- ADDITIONAL TRANSACTION USE CASES ---
+
+    /**
+     * USE CASE 1: Transaction Propagation REQUIRES_NEW
+     * Demonstrates how to create a new transaction regardless of existing ones
+     */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    public User createUserWithNewTransaction(UserPostDto dto) {
+        log.info("Creating user with REQUIRES_NEW propagation");
+        
+        User user = User.builder()
+                .username(dto.getUsername())
+                .email(dto.getEmail())
+                .firstName(dto.getFirstName())
+                .lastName(dto.getLastName())
+                .active(true)
+                .version(0L)
+                .build();
+        
+        return userRepository.save(user);
+    }
+    
+    /**
+     * USE CASE 2: Read-Only Transaction
+     * Optimizes database access for read-only operations by disabling dirty checking
+     */
+    @Transactional(readOnly = true)
+    public List<User> getAllUsersReadOnly() {
+        log.info("Getting all users with readOnly=true");
+        return userRepository.findAll();
+    }
+    
+    /**
+     * USE CASE 3: Transaction Isolation Level
+     * Sets a specific isolation level for the transaction
+     */
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.SERIALIZABLE)
+    public User updateUserWithSerializableIsolation(Long userId, String newEmail) {
+        log.info("Updating user with SERIALIZABLE isolation level");
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+        
+        user.setEmail(newEmail);
+        return userRepository.save(user);
+    }
+    
+    /**
+     * USE CASE 4: Custom Rollback Rules
+     * Rolls back on specific exceptions but not others
+     */
+    @Transactional(rollbackFor = IllegalArgumentException.class, noRollbackFor = UnsupportedOperationException.class)
+    public User updateUserWithCustomRollbackRules(Long userId, String newEmail, boolean throwException, String exceptionType) {
+        log.info("Updating user with custom rollback rules");
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+        
+        user.setEmail(newEmail);
+        User savedUser = userRepository.save(user);
+        
+        if (throwException) {
+            if ("illegalArgument".equals(exceptionType)) {
+                log.info("Throwing IllegalArgumentException - transaction WILL rollback");
+                throw new IllegalArgumentException("Test exception - this will cause rollback");
+            } else if ("unsupportedOperation".equals(exceptionType)) {
+                log.info("Throwing UnsupportedOperationException - transaction will NOT rollback");
+                throw new UnsupportedOperationException("Test exception - this will not cause rollback");
+            }
+        }
+        
+        return savedUser;
+    }
+    
+    /**
+     * USE CASE 5: Transaction Timeout
+     * Sets a time limit for the transaction
+     */
+    @Transactional(timeout = 5)
+    public User updateUserWithTimeout(Long userId, String newEmail, boolean simulateDelay) throws InterruptedException {
+        log.info("Updating user with 5-second timeout");
+        
+        if (simulateDelay) {
+            log.info("Simulating long-running operation...");
+            Thread.sleep(4000); // Sleep for 4 seconds (under the timeout)
+        }
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+        
+        user.setEmail(newEmail);
+        return userRepository.save(user);
+    }
+    
+    /**
+     * USE CASE 6: Nested Transactional Methods
+     * Demonstrates transaction propagation behavior when one transactional method calls another
+     */
+    @Transactional
+    public void nestedTransactionExample(UserPostDto dto1, UserPostDto dto2, boolean failInner) {
+        log.info("Starting outer transaction");
+        
+        // Save first user in outer transaction
+        User user1 = User.builder()
+                .username(dto1.getUsername())
+                .email(dto1.getEmail())
+                .firstName(dto1.getFirstName())
+                .lastName(dto1.getLastName())
+                .active(true)
+                .version(0L)
+                .build();
+        
+        userRepository.save(user1);
+        log.info("Saved first user in outer transaction");
+        
+        try {
+            // Call inner transaction with REQUIRES_NEW
+            // This will create a separate transaction
+            User user2 = createUserWithNewTransaction(dto2);
+            log.info("Saved second user in inner transaction: {}", user2.getId());
+            
+            if (failInner) {
+                log.info("Simulating failure after inner transaction completed");
+                throw new RuntimeException("Simulated failure in outer transaction");
+            }
+        } catch (Exception e) {
+            log.error("Error in nested transaction: {}", e.getMessage());
+            throw e; // Re-throw to cause outer transaction to roll back
+        }
+        
+        log.info("Completed outer transaction successfully");
+    }
+    
+    /**
+     * USE CASE 7: Bulk Operations
+     * Demonstrates bulk update operations within a transaction
+     */
+    @Transactional
+    public int bulkUpdateUserStatus(boolean newStatus) {
+        log.info("Performing bulk update of user status to: {}", newStatus);
+        
+        // This would typically use a custom query method in the repository
+        // For demonstration, we'll simulate it by loading and updating all users
+        List<User> users = userRepository.findAll();
+        
+        for (User user : users) {
+            user.setActive(newStatus);
+            userRepository.save(user);
+        }
+        
+        log.info("Updated status for {} users", users.size());
+        return users.size();
+    }
+    
+    /**
+     * USE CASE 8: Programmatic Transaction Management
+     * Demonstrates how to use PlatformTransactionManager directly
+     */
+    public void programmaticTransactionExample(UserPostDto dto) {
+        log.info("Demonstrating programmatic transaction management");
+        
+        org.springframework.transaction.PlatformTransactionManager txManager = 
+                org.springframework.transaction.support.TransactionSynchronizationManager.getResourceMap()
+                .values().stream()
+                .filter(r -> r instanceof org.springframework.transaction.PlatformTransactionManager)
+                .map(r -> (org.springframework.transaction.PlatformTransactionManager) r)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("TransactionManager not found"));
+
+        org.springframework.transaction.support.TransactionTemplate txTemplate = 
+                new org.springframework.transaction.support.TransactionTemplate(txManager);
+        
+        // Execute code within a transaction
+        txTemplate.execute(status -> {
+            try {
+                User user = User.builder()
+                        .username(dto.getUsername())
+                        .email(dto.getEmail())
+                        .firstName(dto.getFirstName())
+                        .lastName(dto.getLastName())
+                        .active(true)
+                        .version(0L)
+                        .build();
+                
+                User savedUser = userRepository.save(user);
+                log.info("Saved user programmatically: {}", savedUser.getId());
+                
+                // Manually roll back if needed
+                // status.setRollbackOnly();
+                
+                return savedUser;
+            } catch (Exception e) {
+                log.error("Error in programmatic transaction: {}", e.getMessage());
+                status.setRollbackOnly();
+                throw e;
+            }
+        });
+    }
+    
+    /**
+     * USE CASE 9: Self-Invocation Problem
+     * Demonstrates the issue with calling @Transactional methods from within the same class
+     */
+    public void demonstrateSelfInvocationIssue(UserPostDto dto) {
+        log.info("Demonstrating self-invocation problem");
+        
+        // This call won't have a transaction because it's a direct method call, not through a proxy
+        updateUserEmail(1L, "self.invocation@example.com");
+        
+        log.info("Note: The above method call was not actually transactional due to self-invocation!");
+    }
+    
+    /**
+     * USE CASE 10: Transaction Event Listeners
+     * Demonstrates how to use TransactionEventListener to perform actions 
+     * before or after transaction completion
+     */
+    @Transactional
+    public User saveUserWithTransactionEvents(UserPostDto dto) {
+        log.info("Saving user with transaction events");
+        
+        User user = User.builder()
+                .username(dto.getUsername())
+                .email(dto.getEmail())
+                .firstName(dto.getFirstName())
+                .lastName(dto.getLastName())
+                .active(true)
+                .version(0L)
+                .build();
+        
+        User savedUser = userRepository.save(user);
+        
+        // Publish an event that will be caught by methods annotated with @TransactionEventListener
+        eventPublisher.publishEvent(new UserCreatedEvent(savedUser));
+        
+        log.info("User saved and event published: {}", savedUser.getId());
+        log.info("Transaction events will execute according to transaction phase");
+        
+        return savedUser;
     }
 } 

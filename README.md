@@ -51,15 +51,82 @@ Using JPA's `@Version` annotation to implement optimistic locking:
 - Independent entities with proper version field handling
 - Entity lifecycle within transactions
 
+### 4. Additional Transaction Use Cases
+The project includes 10 additional transaction use cases that demonstrate:
+
+1. **Transaction Propagation (REQUIRES_NEW)**
+   - Creating new independent transactions from within existing ones
+   - How child transactions can commit even if parent transactions roll back
+
+2. **Read-Only Transactions**
+   - Performance optimization for read-only operations
+   - How read-only mode disables dirty checking and other write operations
+
+3. **Transaction Isolation Levels**
+   - Using SERIALIZABLE, REPEATABLE_READ, READ_COMMITTED, and READ_UNCOMMITTED
+   - How isolation levels affect transaction behavior
+
+4. **Custom Rollback Rules**
+   - Configuring transaction rollback for specific exception types
+   - Using `rollbackFor` and `noRollbackFor` attributes
+
+5. **Transaction Timeout**
+   - Setting time limits for long-running transactions
+   - Handling transaction timeout exceptions
+
+6. **Nested Transactional Methods**
+   - Behavior of nested transactional method calls
+   - How propagation affects nested transactions
+
+7. **Bulk Operations in Transactions**
+   - Performing batch updates within a transaction
+   - Optimizing bulk operations
+
+8. **Programmatic Transaction Management**
+   - Using `TransactionTemplate` for manual transaction control
+   - Advantages of programmatic vs. declarative transactions
+
+9. **Self-Invocation Problem**
+   - Understanding why calling @Transactional methods from within the same class fails
+   - Solutions to the self-invocation problem
+
+10. **Transaction Event Listeners**
+    - Using `@TransactionEventListener` to respond to transaction events
+    - Handling actions before/after transaction completion
+
 ## Running the Application
 1. Clone the repository
 2. Build with Maven: `mvn clean install`
 3. Run the application: `mvn spring-boot:run`
 
-The application will:
-1. Create sample User and Post entities
-2. Demonstrate optimistic locking with version conflicts
-3. Show transaction rollback scenarios
+The application runs all demonstration scenarios by default. Each scenario is implemented as a separate `CommandLineRunner` bean and runs in a specific order. To enable or disable specific demos:
+
+### Option 1: Using Spring profiles
+
+Create an `application.properties` file with the following settings to enable specific demo runners:
+
+```properties
+# Enable/disable specific demo runners
+spring.profiles.active=demo1,demo3,demo5
+
+# Alternatively, disable specific demo runners
+spring.profiles.default=all
+spring.profiles.inactive=demo2,demo4
+```
+
+### Option 2: Using command line arguments
+
+Run with specific command line arguments to enable only certain demos:
+
+```bash
+mvn spring-boot:run -Dspring-boot.run.arguments="--demo=1,3,5"
+```
+
+This requires minor code changes to parse the arguments in the application class.
+
+### Option 3: Modify source code
+
+Open `JpaApplication.java` and comment out the `@Bean` annotation for any demo you want to disable.
 
 ## H2 Console
 The H2 database console is available at: http://localhost:8080/h2-console
