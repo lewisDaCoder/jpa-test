@@ -1,36 +1,56 @@
 # Spring JPA Transaction Test Project
 
 ## Overview
-This project demonstrates the behavior of Spring JPA's `@Transactional` annotation and optimistic locking using JPA entities. It provides practical examples of transaction management, version-based concurrency control, and rollback scenarios.
+This project demonstrates two primary concepts:
+1. The behavior of Spring JPA's `@Transactional` annotation and optimistic locking using JPA entities.
+2. Java annotation patterns and best practices, including composite annotations, custom annotations with AOP, and common pitfalls.
 
 ## Features
 - Independent JPA entities (User and Post) with version-based optimistic locking
 - Transaction propagation and rollback demonstration
 - H2 in-memory database integration
 - Comprehensive examples of JPA transaction behavior
+- Custom annotations with Spring AOP aspects
+- Composite annotation demonstrations
+- Annotation processing and testing
 
 ## Technology Stack
 - Java 17
 - Spring Boot 3.4.4
 - Spring Data JPA
+- Spring AOP
 - H2 Database
+- JUnit 5 & AssertJ
+- Mockito
 - Lombok
 - Maven
 
 ## Project Structure
 ```
 src/main/java/lewis/jpa/
-├── JpaApplication.java         # Main application and demonstration runner
+├── JpaApplication.java            # Main application and transaction demos
+├── JpaAnnotationDemoRunner.java   # Annotation demonstration runner
+├── annotation/                    # Custom annotations
+│   ├── Audited.java               # Method audit annotation
+│   ├── CompositeTransactional.java# Composite transaction annotation
+│   ├── Retry.java                 # Method retry annotation
+│   └── SecuredOperation.java      # Security+transaction+audit annotation
+├── aspect/                        # Annotation processors (AOP)
+│   ├── AuditAspect.java           # Handles @Audited annotation
+│   └── RetryAspect.java           # Handles @Retry annotation
 ├── dto
-│   └── UserPostDto.java        # Data transfer object for User and Post data
+│   └── UserPostDto.java           # Data transfer object
 ├── entity
-│   ├── Post.java               # Post entity with @Version field
-│   └── User.java               # User entity with @Version field
+│   ├── Post.java                  # Post entity with @Version field
+│   └── User.java                  # User entity with @Version field
 ├── repository
-│   ├── PostRepository.java     # JPA repository for Post entity
-│   └── UserRepository.java     # JPA repository for User entity
-└── service
-    └── DataService.java        # Service with @Transactional methods
+│   ├── PostRepository.java        # JPA repository for Post entity
+│   └── UserRepository.java        # JPA repository for User entity
+├── service
+│   ├── AnnotationDemoService.java # Service demonstrating annotations
+│   └── DataService.java           # Service with transaction demos
+└── util
+    └── ColoredOutput.java         # Console coloring utility
 ```
 
 ## Key Concepts Demonstrated
@@ -94,39 +114,65 @@ The project includes 10 additional transaction use cases that demonstrate:
     - Using `@TransactionEventListener` to respond to transaction events
     - Handling actions before/after transaction completion
 
-## Running the Application
-1. Clone the repository
-2. Build with Maven: `mvn clean install`
-3. Run the application: `mvn spring-boot:run`
+### 5. Java Annotation Patterns
+The project demonstrates various Java annotation patterns, primarily through `AnnotationDemoService.java` and processed by aspects in the `lewis.jpa.aspect` package. The `JpaAnnotationDemoRunner.java` executes these demonstrations.
 
-The application runs all demonstration scenarios by default. Each scenario is implemented as a separate `CommandLineRunner` bean and runs in a specific order. To enable or disable specific demos:
+1.  **Custom Annotations with Attributes:**
+    *   **`@Audited`**: Marks methods for auditing. Parameters: `action` (String description), `includeParams` (boolean). Processed by `AuditAspect` using `@Before`, `@AfterReturning`, and `@AfterThrowing` advice to log method entry, success, and failure.
+    *   **`@Retry`**: Marks methods for automatic retry on specific exceptions. Parameters: `maxAttempts` (int), `delay` (long ms), `retryFor` (Class<? extends Throwable>[]), `noRetryFor` (Class<? extends Throwable>[]). Processed by `RetryAspect` using `@Around` advice to implement the retry logic.
+
+2.  **Composite / Meta-Annotations:**
+    *   **`@CompositeTransactional`**: Combines multiple `@Transactional` attributes (`readOnly=true`, `timeout=20`, `isolation=READ_COMMITTED`, `propagation=REQUIRED`) into a single, reusable annotation for standard read-only operations.
+    *   **`@SecuredOperation`**: Combines transaction management (`@Transactional`) and method security (`@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")`) into one annotation. It also includes its own `value` attribute for description.
+
+3.  **Annotation Processing with AOP:**
+    *   Demonstrates how Spring AOP aspects (`AuditAspect`, `RetryAspect`) can intercept methods marked with custom annotations to add cross-cutting concerns like auditing and retry logic declaratively.
+
+4.  **Testing Annotations:**
+    *   Tests in `src/test/java/lewis/jpa/annotation/` show how to test annotation behavior, including verifying AOP aspect logic (log messages for `@Audited`, retry attempts for `@Retry`) and meta-annotation attribute aggregation (`@CompositeTransactional`, `@SecuredOperation`). Requires techniques like `@SpyBean` for testing aspects applied via AOP proxies.
+
+## Running the Application
+1.  Clone the repository
+2.  Build with Maven: `mvn clean install`
+3.  Run the application: `mvn spring-boot:run`
+
+The application runs two sets of demonstrations by default:
+*   **Transaction Demos:** Implemented as `CommandLineRunner` beans in `JpaApplication.java`. These run first.
+*   **Annotation Demos:** Implemented as a single `CommandLineRunner` in `JpaAnnotationDemoRunner.java`. This runs after the transaction demos.
+
+To enable or disable specific **transaction demos** (managed in `JpaApplication.java`):
 
 ### Option 1: Using Spring profiles
 
 Create an `application.properties` file with the following settings to enable specific demo runners:
 
 ```properties
-# Enable/disable specific demo runners
+# Enable/disable specific transaction demo runners (setup is usually required)
 spring.profiles.active=setup,demo1,demo3,demo5
 
-# Alternatively, disable specific demo runners
-spring.profiles.default=all
-spring.profiles.inactive=demo2,demo4
+# Alternatively, disable specific transaction demo runners
+# spring.profiles.default=all # Keep 'all' if you want annotation demos to run
+# spring.profiles.inactive=demo2,demo4
 ```
 
-All demo runners are annotated with both the "all" profile and their specific demo profile (e.g., "demo1", "demo2", etc.). The "setup" profile is used for the initial data setup.
+All transaction demo runners are annotated with both the "all" profile and their specific demo profile (e.g., "demo1", "demo2", etc.). The "setup" profile is used for the initial data setup. The annotation demos in `JpaAnnotationDemoRunner` run if the "all" profile (or no specific profile) is active.
 
 ### Option 2: Using command line arguments
 
 Run with specific profiles via command line:
 
 ```bash
-mvn spring-boot:run -Dspring.profiles.active=setup,demo1,demo3,demo5
+# Run setup, demo1, demo3, demo5 transaction demos AND the annotation demos
+mvn spring-boot:run -Dspring.profiles.active=setup,demo1,demo3,demo5,all 
+
+# Run only the annotation demos (no transaction demos or setup)
+mvn spring-boot:run -Dspring.profiles.active=annotation-demo 
+# (Note: JpaAnnotationDemoRunner would need @Profile("annotation-demo") added)
 ```
 
 ### Option 3: Modify source code
 
-Open `JpaApplication.java` and comment out the `@Bean` annotation for any demo you want to disable.
+Open `JpaApplication.java` and comment out the `@Bean` annotation for any transaction demo you want to disable. The annotation demo runner can be disabled similarly in `JpaAnnotationDemoRunner.java`.
 
 ## H2 Console
 The H2 database console is available at: http://localhost:8080/h2-console
@@ -146,6 +192,20 @@ If you encounter NullPointerExceptions related to version fields:
 - Verify exceptions are properly propagated (not caught and suppressed)
 - Check transaction boundaries are correctly defined
 - Ensure proxied method calls (from same class) don't bypass transaction management
+
+### 3. Self-Invocation Problem with AOP Annotations (@Transactional, @Retry, @Audited, etc.)
+- **Problem**: Calling an annotated method (e.g., `@Transactional`, `@Retry`, `@Audited`) directly from another method within the same class instance bypasses the Spring AOP proxy. The proxy is responsible for applying the annotation's behavior (starting a transaction, applying retry logic, auditing). When bypassed, the annotation has no effect.
+- **Demonstration**: See `AnnotationDemoService.badAnnotationUsage()` (USE CASE 7) which directly calls the `@Transactional` `findUserAndUpdate()` method, bypassing the transaction.
+- **Solution**: To ensure the annotation logic is applied, you must call the method through the Spring-managed proxy instance of the class.
+    - **Dependency Injection**: Inject the service dependency into itself (e.g., using `@Autowired` or constructor injection on the service itself). Call the method on the injected proxy instance.
+    - **ApplicationContext**: Obtain the proxy instance from the `ApplicationContext`.
+    - **Refactoring**: Move the annotated method to a separate Spring bean and inject that bean.
+- **Correct Example**: See `AnnotationDemoService.correctAnnotationUsage()` (USE CASE 8) which demonstrates the concept of calling the proxied self (though the example implementation for getting the proxy is simplified for demonstration).
+- **Testing**: When testing methods affected by self-invocation issues related to AOP, using `@SpyBean` is often necessary to ensure method calls go through the AOP proxy so that annotations like `@Retry` or `@Audited` are processed correctly by their aspects.
+
+### 4. Testing Custom AOP Aspects
+- Verifying aspect logic (e.g., log messages, method invocations, retry attempts) often requires capturing logs (`ListAppender` for Logback) or verifying interactions with spied beans (`@SpyBean`).
+- Ensure the test context correctly loads the aspects and related configurations (`@SpringBootTest`, relevant profiles).
 
 ## Additional Resources
 - [Spring Data JPA Documentation](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/)

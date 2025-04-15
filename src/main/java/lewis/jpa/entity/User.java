@@ -1,5 +1,6 @@
 package lewis.jpa.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -8,14 +9,12 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Table(name = "users")
-@Getter
-@Setter
+@Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -25,12 +24,20 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
+    @Column(unique = true, nullable = false)
     private String username;
+    
+    @Column(nullable = false)
     private String email;
+    
     private String firstName;
+    
     private String lastName;
-    private boolean active;
+    
+    @Builder.Default
+    private boolean active = true;
     
     @Version
-    private Long version;
+    @Builder.Default
+    private Long version = 0L;
 } 

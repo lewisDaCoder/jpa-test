@@ -9,6 +9,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.annotation.Order;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.context.annotation.Profile;
 
 import lewis.jpa.dto.UserPostDto;
 import lewis.jpa.entity.User;
@@ -67,7 +68,7 @@ public class JpaApplication {
 	 */
 	@Bean
 	@Order(1)
-	@org.springframework.context.annotation.Profile({"all", "setup"})
+	@Profile("!test")
 	public CommandLineRunner initialDataSetup() {
 		return args -> {
 			log.info(ColoredOutput.BOLD + ColoredOutput.YELLOW + "SETUP: Initializing test data..." + ColoredOutput.RESET);

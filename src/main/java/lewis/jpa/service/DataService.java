@@ -58,9 +58,6 @@ public class DataService {
                     .title(dto.getPostTitle())
                     .content(dto.getPostContent())
                     .createdAt(LocalDateTime.now())
-                    .published(true)
-                    .authorUsername(savedUser.getUsername())  // Just store the username as string
-                    // .version(0L)
                     .build();
             
             Post savedPost = postRepository.save(post);
